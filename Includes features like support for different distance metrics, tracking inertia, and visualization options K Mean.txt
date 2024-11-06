@@ -1,0 +1,68 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+class AdvancedKMeans:
+    def __init__(self, n_clusters=3, max_iters=100, tol=1e-4, distance_metric='euclidean'):
+        self.n_clusters = n_clusters
+        self.max_iters = max_iters
+        self.tol = tol
+        self.distance_metric = distance_metric
+        self.centroids = None
+        self.inertia_ = None
+    
+    def _initialize_centroids(self, X):
+        np.random.seed(42)
+        random_indices = np.random.permutation(len(X))
+        self.centroids = X[random_indices[:self.n_clusters]]
+        
+    def _compute_distances(self, X):
+        if self.distance_metric == 'euclidean':
+            return np.linalg.norm(X[:, np.newaxis] - self.centroids, axis=2)
+        elif self.distance_metric == 'manhattan':
+            return np.sum(np.abs(X[:, np.newaxis] - self.centroids), axis=2)
+        else:
+            raise ValueError("Unsupported distance metric. Use 'euclidean' or 'manhattan'.")
+    
+    def _assign_clusters(self, X):
+        distances = self._compute_distances(X)
+        return np.argmin(distances, axis=1)
+
+    def _update_centroids(self, X, clusters):
+        return np.array([X[clusters == k].mean(axis=0) for k in range(self.n_clusters)])
+    
+    def fit(self, X):
+        # Initialize centroids
+        self._initialize_centroids(X)
+        for i in range(self.max_iters):
+            # Step 1: Assign clusters
+            clusters = self._assign_clusters(X)
+            # Step 2: Calculate new centroids
+            new_centroids = self._update_centroids(X, clusters)
+            # Check for convergence
+            if np.all(np.abs(new_centroids - self.centroids) < self.tol):
+                break
+            self.centroids = new_centroids
+        # Calculate inertia
+        self.inertia_ = np.sum((X - self.centroids[self._assign_clusters(X)]) ** 2)
+    
+    def predict(self, X):
+        return self._assign_clusters(X)
+    
+    def plot_clusters(self, X):
+        clusters = self.predict(X)
+        plt.scatter(X[:, 0], X[:, 1], c=clusters, cmap='viridis', s=50)
+        plt.scatter(self.centroids[:, 0], self.centroids[:, 1], s=200, c='red', marker='X')
+        plt.title('Advanced K-Means Clustering')
+        plt.xlabel('Feature 1')
+        plt.ylabel('Feature 2')
+        plt.show()
+
+# Example usage
+from sklearn.datasets import make_blobs
+X, y_true = make_blobs(n_samples=300, centers=4, cluster_std=0.6, random_state=42)
+
+# Apply AdvancedKMeans
+kmeans = AdvancedKMeans(n_clusters=4, distance_metric='euclidean')
+kmeans.fit(X)
+print("Final Inertia:", kmeans.inertia_)
+kmeans.plot_clusters(X)

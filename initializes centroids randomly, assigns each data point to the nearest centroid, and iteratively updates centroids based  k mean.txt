@@ -1,0 +1,52 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+class KMeans:
+    def __init__(self, n_clusters=3, max_iters=100, tol=1e-4):
+        self.n_clusters = n_clusters
+        self.max_iters = max_iters
+        self.tol = tol
+        self.centroids = None
+
+    def fit(self, X):
+        # Step 1: Initialize centroids randomly from the dataset
+        np.random.seed(42)
+        random_indices = np.random.permutation(len(X))
+        self.centroids = X[random_indices[:self.n_clusters]]
+        
+        for i in range(self.max_iters):
+            # Step 2: Assign each data point to the nearest centroid
+            clusters = self._assign_clusters(X)
+            
+            # Step 3: Calculate new centroids from the mean of each cluster
+            new_centroids = np.array([X[clusters == k].mean(axis=0) for k in range(self.n_clusters)])
+            
+            # Check for convergence
+            if np.all(np.abs(new_centroids - self.centroids) < self.tol):
+                break
+            
+            self.centroids = new_centroids
+
+    def _assign_clusters(self, X):
+        distances = np.linalg.norm(X[:, np.newaxis] - self.centroids, axis=2)
+        return np.argmin(distances, axis=1)
+
+    def predict(self, X):
+        return self._assign_clusters(X)
+
+# Generate some data for demonstration
+from sklearn.datasets import make_blobs
+X, y_true = make_blobs(n_samples=300, centers=4, cluster_std=0.6, random_state=42)
+
+# Apply KMeans
+kmeans = KMeans(n_clusters=4)
+kmeans.fit(X)
+y_kmeans = kmeans.predict(X)
+
+# Plot the clusters and centroids
+plt.scatter(X[:, 0], X[:, 1], c=y_kmeans, s=50, cmap='viridis')
+plt.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], s=200, c='red', marker='X')
+plt.title('K-Means Clustering')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.show()
